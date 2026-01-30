@@ -76,26 +76,39 @@ class ARplacementAI {
     
     async init() {
         try {
-            // Check for WebXR support
-            if (!this.checkWebXRSupport()) {
-                this.showError('WebXR not supported. Please use Chrome on Android (ARCore) or Safari on iOS (ARKit).');
-                return;
-            }
-            
+            // Load session first to populate user data
             await this.loadUserSession();
-            await this.fetchProductCatalog();
-            this.setupScene();
+            
+            // Setup UI immediately so we have a loading screen
             this.setupUI();
-            this.setupEventListeners();
-            
-            // Initialize brand API with demo data
-            await this.brandAPI.initialize({
-                apiKey: 'demo_key_' + Date.now(),
-                userId: this.userProfile?.id || 'guest_' + Math.random().toString(36).substr(2, 9)
-            });
-            
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'flex';
+
+        // Check for WebXR support
+        const webxrSupported = await this.checkWebXRSupport();
+        const startBtn = document.getElementById('startAR');
+
+        if (webxrSupported) {
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i class="fas fa-camera"></i> Start AR Experience';
+            }
+        } else if (startBtn) {
+                startBtn.disabled = true;
+                startBtn.innerHTML = '<i class="fas fa-ban"></i> AR Not Supported';
+                startBtn.style.background = '#555';
+                startBtn.style.cursor = 'not-allowed';
+        }
+
+        await this.fetchProductCatalog();
+        this.setupEventListeners();
+
+        // Initialize brand API with demo data
+        await this.brandAPI.initialize({
+            apiKey: 'demo_key_' + Date.now(),
+            userId: this.userProfile?.id || 'guest_' + Math.random().toString(36).substring(2, 11)
+        });
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('startScreen').style.display = 'flex';
             
         } catch (error) {
             console.error('Initialization error:', error);
@@ -103,9 +116,16 @@ class ARplacementAI {
         }
     }
     
-    checkWebXRSupport() {
-        return 'xr' in navigator && 'isSessionSupported' in navigator.xr;
+async checkWebXRSupport() {
+    if ('xr' in navigator && typeof navigator.xr.isSessionSupported === 'function') {
+        try {
+            return await navigator.xr.isSessionSupported('immersive-ar');
+        } catch (e) {
+            console.warn('WebXR check failed:', e);
+        }
     }
+    return false;
+}
     
     async loadUserSession() {
         // Load or create user profile
@@ -379,9 +399,9 @@ class ARplacementAI {
                         </div>
                     </div>
                     
-                    <button id="startAR" class="btn-primary">
-                        <i class="fas fa-camera"></i>
-                        Start AR Experience
+                    <button id="startAR" class="btn-primary" disabled>
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        Checking Compatibility...
                     </button>
                     
                     <button id="viewCatalog" class="btn-secondary">
@@ -881,13 +901,13 @@ class ARplacementAI {
                 url,
                 (gltf) => {
                     const model = gltf.scene;
-                    
+
                     // Traverse and setup materials
                     model.traverse((child) => {
                         if (child.isMesh) {
                             child.castShadow = true;
                             child.receiveShadow = true;
-                            
+
                             // Improve material appearance
                             if (child.material) {
                                 child.material.roughness = 0.8;
@@ -895,17 +915,26 @@ class ARplacementAI {
                             }
                         }
                     });
-                    
+
                     // Center the model
                     const box = new THREE.Box3().setFromObject(model);
                     const center = box.getCenter(new THREE.Vector3());
                     model.position.sub(center);
-                    
+
                     resolve(model);
                 },
                 (progress) => {
                     // Loading progress
-                    console.log(`Loading model: ${(progress.loaded / progress.total * 100).toFixed(1)}%`);
+                    if (progress.total > 0) {
+                        const percent = (progress.loaded / progress.total * 100);
+                        if (percent <= 100) {
+                            console.log(`Loading model: ${percent.toFixed(1)}%`);
+                        } else {
+                            console.log(`Loading model: ${(progress.loaded / 1024).toFixed(0)} KB`);
+                        }
+                    } else {
+                        console.log(`Loading model: ${(progress.loaded / 1024).toFixed(0)} KB`);
+                    }
                 },
                 (error) => {
                     reject(error);
