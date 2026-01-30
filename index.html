@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARplacementAI - AI-Driven AR Product Placement Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- <script src="https://js.stripe.com/v3/"></script> -->
+    <script>
+        // Check if running from file system and warn user about CORS/Module restrictions
+        if (window.location.protocol === 'file:') {
+            const msg = "This application requires a local web server to run due to CORS restrictions on ES Modules. Please serve the files using VS Code Live Server, Python http.server, or similar.";
+            console.error(msg);
+            alert(msg);
+        }
+    </script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <!-- AR rendered here -->
+</body>
+</html>
